@@ -2,7 +2,7 @@
 from abc import ABC, abstractmethod
 from excepciones import ClienteInvalidoError, ServicioInvalidoError, ReservaError
 
-class EntidaddBase(ABC):
+class EntidadBase(ABC):
     """Clase abstracta base para las entidades del sistema."""
     def __init__(self, identificador):
         self.identificador = identificador
@@ -12,7 +12,7 @@ class EntidaddBase(ABC):
         pass
 
 
-class Cliente(EntidaddBase):
+class Cliente(EntidadBase):
     def __init__(self, identificador, nombre, correo):
         super().__init__(identificador)
         if not nombre or not correo:
