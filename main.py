@@ -2,31 +2,31 @@ import logging
 import tkinter as tk
 from interfaz import AppSoftwareFJ, ejecutar_simulaciones_logica
 
+# Configuración del sistema de registro (Logging) con nivel INFO según retroalimentación
 logging.basicConfig(
     filename="eventos_errores.log",
-    level=logging.ERROR,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    encoding="utf-8",
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
 )
 
-
 def main():
-    print("=" * 65)
+    print("=================================================================")
     print("INICIO DE LA SIMULACIÓN DE PRUEBAS EN CONSOLA (10 ESCENARIOS)")
-    print("=" * 65)
-
+    print("=================================================================")
+    
+    # Ejecuta las simulaciones lógicas en consola y registra en eventos_errores.log
     resultados = ejecutar_simulaciones_logica()
-    for linea in resultados:
-        print(linea)
+    for res in resultados:
+        print(res)
 
-    print("=" * 65)
-    print("FIN DE SIMULACIONES. ABRIENDO INTERFAZ GRÁFICA (AppSoftwareFJ)...")
-    print("=" * 65)
+    print("=================================================================")
+    print("INICIANDO INTERFAZ GRÁFICA (AppSoftwareFJ)...")
+    print("=================================================================")
 
+    # Inicia la ventana principal de Tkinter
     root = tk.Tk()
-    app = AppSoftwareFJ(root, resultados_iniciales=resultados)
+    app = AppSoftwareFJ(root)
     root.mainloop()
-
 
 if __name__ == "__main__":
     main()
