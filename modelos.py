@@ -1,103 +1,38 @@
-from abc import ABC, abstractmethod
-from excepciones import ClienteInvalidoError, ServicioInvalidoError, ReservaError
-
-
-class EntidadBase(ABC):
-    """Clase abstracta base para las entidades del sistema."""
-
-    def __init__(self, identificador):
-        self.identificador = identificador
-
-    @abstractmethod
-    def obtener_detalle(self):
-        pass
-
-
-class Cliente(EntidadBase):
-    def __init__(self, identificador, nombre, correo):
-        super().__init__(identificador)
-        if not nombre or not correo or "@" not in correo:
-            raise ClienteInvalidoError(
-                f"Datos inválidos para el cliente ID {identificador}."
-            )
-        self.nombre = nombre
-        self.correo = correo
-
-    def obtener_detalle(self):
-        return f"Cliente ID: {self.identificador} | Nombre: {self.nombre} | Correo: {self.correo}"
-
-
-class Servicio(ABC):
-    def __init__(self, nombre_servicio, costo):
-        if costo <= 0:
-            raise ServicioInvalidoError(
-                f"El costo del servicio '{nombre_servicio}' debe ser mayor a cero."
-            )
-        self.nombre_servicio = nombre_servicio
-        self.costo = costo
-
-    @abstractmethod
-    def calcular_costo(self):
-        pass
-
-
-class ReservaSalas(Servicio):
-    def __init__(self, costo, horas):
-        super().__init__("Reserva de Salas", costo)
-        if horas <= 0:
-            raise ServicioInvalidoError(
-                "La cantidad de horas para la sala debe ser mayor a cero."
-            )
-        self.horas = horas
-
-    def calcular_costo(self):
-        return self.costo * self.horas
-
-
-class AlquilerEquipos(Servicio):
-    def __init__(self, costo, dias):
-        super().__init__("Alquiler de Equipos", costo)
-        if dias <= 0:
-            raise ServicioInvalidoError(
-                "Los días de alquiler de equipos deben ser mayores a cero."
-            )
-        self.dias = dias
-
-    def calcular_costo(self):
-        return self.costo * self.dias
-
-
-class AsesoriasEspecializadas(Servicio):
-    def __init__(self, costo, sesiones):
-        super().__init__("Asesorías Especializadas", costo)
-        if sesiones <= 0:
-            raise ServicioInvalidoError(
-                "El número de sesiones de asesoría debe ser mayor a cero."
-            )
-        self.sesiones = sesiones
-
-    def calcular_costo(self):
-        return self.costo * self.sesiones
-
-
-class Reserva:
-    def __init__(self, cliente, servicio):
-        if not isinstance(cliente, Cliente):
-            raise ReservaError(
-                "No se puede crear una reserva sin un objeto Cliente válido."
-            )
-        if not isinstance(servicio, Servicio):
-            raise ReservaError(
-                "No se puede crear una reserva sin un Servicio disponible válido."
-            )
+class Reserva(EntidadBase):
+    def __init__(self, identificador, cliente, servicio, horas: int):
+        super().__init__(identificador, f"Reserva de {servicio.nombre}")
         self.cliente = cliente
         self.servicio = servicio
+        self.horas = horas
+        self.estado = "Pendiente"  # Estado inicial de la reserva
+        self._costo_total = self.calcular_costo()
+
+    def calcular_costo(self, impuesto=0.0, descuento=0.0):
+        """Calcula el costo base y permite sobrecarga con impuesto y descuento opcionales."""
+        costo_base = self.servicio.costo * self.horas
+        costo_final = costo_base + (costo_base * impuesto) - (costo_base * descuento)
+        return max(0.0, costo_final)
+
+    def confirmar(self):
+        """Confirma la reserva si está pendiente."""
+        if self.estado != "Pendiente":
+            raise ReservaError(f"No se puede confirmar la reserva {self.identificador} porque su estado actual es '{self.estado}'.")
+        self.estado = "Confirmada"
+        logging.info(f"Reserva {self.identificador} confirmada exitosamente.")
+
+    def cancelar(self):
+        """Cancela la reserva validando que no esté ya procesada o cancelada."""
+        if self.estado in ["Procesada", "Cancelada"]:
+            raise ReservaError(f"Operación no permitida: no se puede cancelar la reserva {self.identificador} con estado '{self.estado}'.")
+        self.estado = "Cancelada"
+        logging.info(f"Reserva {self.identificador} cancelada correctamente.")
 
     def procesar_reserva(self):
-        try:
-            total = self.servicio.calcular_costo()
-            return f"Reserva exitosa para {self.cliente.nombre} ({self.servicio.nombre_servicio}). Total: ${total:,.0f}"
-        except Exception as e:
-            raise ReservaError(
-                f"Error procesando el costo del servicio para {self.cliente.nombre}"
-            ) from e
+        """Procesa la reserva y cambia su estado."""
+        if self.estado == "Cancelada":
+            raise ReservaError(f"No se puede procesar la reserva {self.identificador} porque se encuentra cancelada.")
+        self.estado = "Procesada"
+        logging.info(f"Reserva {self.identificador} procesada con éxito.")
+
+    def obtener_detalle(self):
+        return f"Reserva ID: {self.identificador} | Cliente: {self.cliente.nombre} | Servicio: {self.servicio.nombre} | Estado: {self.estado} | Costo: ${self._costo_total:.2f}"
