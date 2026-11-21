@@ -120,4 +120,6 @@ class AppSoftwareFJ:  # Clase de la interfaz gráfica
             self.consola.insert(self.tk.END, linea + "\n")  # Lo muestra en pantalla
         messagebox.showinfo(  # Avisa que terminó y que se guardó el log
             "Simulación Completa",
-            "Se ejecutaron las operaciones de prueba y se guardaron
+            "Se ejecutaron las operaciones de prueba y se guardaron en 'eventos_errores.log'.")
+
+# Fin del archivo interfaz.py
