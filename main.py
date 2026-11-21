@@ -15,7 +15,7 @@ from interfaz import AppSoftwareFJ, ejecutar_simulaciones_logica  # noqa: E402
 
 def main():
     print("=" * 65)
-    print("INICIO DE LA SIMULACIÓN DE PRUEBAS EN CONSOLA (10 ESCENARIOS)")
+    print("INICIO DE LA SIMULACIÓN DE PRUEBAS EN CONSOLA (14 ESCENARIOS)")
     print("=" * 65)
 
     resultados = ejecutar_simulaciones_logica()
