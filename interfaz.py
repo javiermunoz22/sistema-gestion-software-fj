@@ -1,31 +1,33 @@
 """Simulaciones (lógica) e interfaz gráfica Tkinter de Software FJ."""
-import logging
+import logging  # Para registrar eventos y errores en el log
 
-from excepciones import ServicioInvalidoError, SoftwareFJException
+from excepciones import ServicioInvalidoError, SoftwareFJException  # Excepciones usadas en este módulo
 from modelos import (AlquilerEquipos, AsesoriasEspecializadas, Cliente, Reserva,
-                     ReservaSalas)
+                     ReservaSalas)  # Clases del sistema
 
 # Fábrica de servicios: asocia el texto del escenario con su clase
 FABRICA_SERVICIOS = {
-    "sala": ReservaSalas,
-    "equipo": AlquilerEquipos,
-    "asesoria": AsesoriasEspecializadas,
+    "sala": ReservaSalas,  # "sala" crea una ReservaSalas
+    "equipo": AlquilerEquipos,  # "equipo" crea un AlquilerEquipos
+    "asesoria": AsesoriasEspecializadas,  # "asesoria" crea una AsesoriasEspecializadas
 }
 
 
 def crear_servicio(tipo_serv, tarifa):
     """Crea un servicio según su tipo. Si no existe, ENCADENA la excepción (raise ... from)."""
-    if tipo_serv == "reserva_nula":
+    if tipo_serv == "reserva_nula":  # Caso especial de prueba
         return None  # simula un servicio faltante
-    try:
+    try:  # Busca la clase del servicio en la fábrica
         clase = FABRICA_SERVICIOS[tipo_serv]
-    except KeyError as causa:
+    except KeyError as causa:  # Si el tipo no existe, Python lanza KeyError
+        # Se convierte en ServicioInvalidoError conservando la causa original con 'from'
         raise ServicioInvalidoError(f"El servicio '{tipo_serv}' no está disponible.") from causa
-    return clase(tarifa)
+    return clase(tarifa)  # Crea y devuelve el servicio con su tarifa
 
 
 def ejecutar_simulaciones_logica():
     """Ejecuta las simulaciones (10 base + 4 de casos inválidos adicionales)."""
+    # Cada escenario: (id cliente, nombre, correo, tipo de servicio, tarifa, cantidad, variante)
     escenarios = [
         ("C01", "Laura Gómez", "laura@mail.com", "sala", 50000, 3, None),          # éxito
         ("C02", "", "sin_nombre@mail.com", "equipo", 80000, 2, None),              # ERROR: sin nombre
@@ -44,77 +46,80 @@ def ejecutar_simulaciones_logica():
         ("C14", "Hugo Rojas", "hugo@mail.com", "sala", 50000, 2, "impuesto_texto"),        # ERROR: cálculo inconsistente
     ]
 
-    resultados_texto = []
+    resultados_texto = []  # Lista donde se guardan los mensajes de cada simulación
 
+    # Recorre los escenarios numerándolos desde 1
     for idx, (cid, nombre, correo, tipo_serv, costo, cantidad, variante) in enumerate(escenarios, start=1):
-        try:
-            cliente = Cliente(cid, nombre, correo)
-            servicio = crear_servicio(tipo_serv, costo)
-            if variante == "no_disponible":
+        try:  # Intenta ejecutar la operación completa; si algo falla, salta al except
+            cliente = Cliente(cid, nombre, correo)  # Crea el cliente (valida sus datos)
+            servicio = crear_servicio(tipo_serv, costo)  # Crea el servicio según el tipo
+            if variante == "no_disponible":  # Caso de prueba: servicio fuera de servicio
                 servicio.disponible = False  # simula un servicio fuera de servicio
-            reserva = Reserva(cliente, servicio, cantidad)
-            if variante == "cancelar":
+            reserva = Reserva(cliente, servicio, cantidad)  # Crea la reserva (valida cliente, servicio y duración)
+            if variante == "cancelar":  # Caso de prueba: reserva cancelada
                 reserva.cancelar()  # luego confirmar() debe fallar (operación no permitida)
-            reserva.confirmar()
+            reserva.confirmar()  # Confirma la reserva
             impuesto = "diecinueve" if variante == "impuesto_texto" else 0.19  # texto = dato inconsistente
-            mensaje_exito = reserva.procesar_reserva(impuesto=impuesto)
+            mensaje_exito = reserva.procesar_reserva(impuesto=impuesto)  # Calcula el costo con 19% de impuesto
 
-        except SoftwareFJException as err:
-            msg = f"[SIMULACIÓN {idx:02d} - ERROR CONTROLADO] {type(err).__name__}: {err}"
-            logging.error(msg)
+        except SoftwareFJException as err:  # Errores propios del sistema (error controlado)
+            msg = f"[SIMULACIÓN {idx:02d} - ERROR CONTROLADO] {type(err).__name__}: {err}"  # Mensaje del error
+            logging.error(msg)  # Registra el error en el log
             if err.__cause__ is not None:  # si hubo encadenamiento, registramos la causa
                 logging.error(f"   Causa original: {type(err.__cause__).__name__}: {err.__cause__}")
-            resultados_texto.append(msg)
+            resultados_texto.append(msg)  # Guarda el mensaje para mostrarlo
         except Exception as err:  # red de seguridad: nada debe detener el programa
-            msg = f"[SIMULACIÓN {idx:02d} - ERROR INESPERADO] {type(err).__name__}: {err}"
-            logging.critical(msg)
-            resultados_texto.append(msg)
-        else:
-            msg = f"[SIMULACIÓN {idx:02d} - ÉXITO] {mensaje_exito}"
-            logging.info(msg)
-            resultados_texto.append(msg)
-        finally:
-            logging.info(f"Finalizado ciclo de auditoría para simulación {idx:02d}.")
+            msg = f"[SIMULACIÓN {idx:02d} - ERROR INESPERADO] {type(err).__name__}: {err}"  # Error no previsto
+            logging.critical(msg)  # Registra el error como crítico
+            resultados_texto.append(msg)  # Guarda el mensaje
+        else:  # Se ejecuta solo si NO hubo errores
+            msg = f"[SIMULACIÓN {idx:02d} - ÉXITO] {mensaje_exito}"  # Mensaje de éxito
+            logging.info(msg)  # Registra el éxito en el log
+            resultados_texto.append(msg)  # Guarda el mensaje
+        finally:  # Se ejecuta SIEMPRE, haya o no error
+            logging.info(f"Finalizado ciclo de auditoría para simulación {idx:02d}.")  # Registro de auditoría
 
-    return resultados_texto
+    return resultados_texto  # Devuelve todos los resultados
 
 
-class AppSoftwareFJ:
+class AppSoftwareFJ:  # Clase de la interfaz gráfica
     """Interfaz gráfica sencilla para mostrar las simulaciones."""
 
     def __init__(self, root, resultados_iniciales=None):
-        import tkinter as tk
-        from tkinter import scrolledtext
-        self.tk = tk
-        self.root = root
-        self.root.title("Sistema de Gestión - Software FJ (Fase 4)")
-        self.root.geometry("720x560")
+        import tkinter as tk  # Librería de interfaces gráficas
+        from tkinter import scrolledtext  # Cuadro de texto con barra de desplazamiento
+        self.tk = tk  # Guarda tkinter para usarlo en otros métodos
+        self.root = root  # Ventana principal
+        self.root.title("Sistema de Gestión - Software FJ (Fase 4)")  # Título de la ventana
+        self.root.geometry("720x560")  # Tamaño de la ventana
 
         titulo = tk.Label(root, text="Software FJ - Gestión Integral de Reservas",
-                          font=("Arial", 14, "bold"))
-        titulo.pack(pady=10)
+                          font=("Arial", 14, "bold"))  # Etiqueta con el título
+        titulo.pack(pady=10)  # Ubica el título con margen vertical
 
         btn_simular = tk.Button(
             root, text="Volver a Ejecutar las Simulaciones y Registrar Logs",
             bg="#2E7D32", fg="white", font=("Arial", 10, "bold"),
-            command=self.ejecutar_desde_gui)
-        btn_simular.pack(pady=5)
+            command=self.ejecutar_desde_gui)  # Al hacer clic ejecuta las simulaciones
+        btn_simular.pack(pady=5)  # Ubica el botón
 
-        self.consola = scrolledtext.ScrolledText(root, width=84, height=24, font=("Consolas", 9))
-        self.consola.pack(pady=10)
+        self.consola = scrolledtext.ScrolledText(root, width=84, height=24, font=("Consolas", 9))  # Área de resultados
+        self.consola.pack(pady=10)  # Ubica el área de texto
 
-        if resultados_iniciales:
-            self.consola.insert(tk.END, "Resultados de la ejecución automática inicial:\n\n")
-            for linea in resultados_iniciales:
-                self.consola.insert(tk.END, linea + "\n")
+        if resultados_iniciales:  # Si llegaron resultados de la ejecución inicial, se muestran
+            self.consola.insert(tk.END, "Resultados de la ejecución automática inicial:\n\n")  # Encabezado
+            for linea in resultados_iniciales:  # Recorre cada resultado
+                self.consola.insert(tk.END, linea + "\n")  # Lo agrega al área de texto
 
-    def ejecutar_desde_gui(self):
-        from tkinter import messagebox
-        self.consola.delete("1.0", self.tk.END)
-        resultados = ejecutar_simulaciones_logica()
-        self.consola.insert(self.tk.END, "Nuevas simulaciones ejecutadas desde la interfaz:\n\n")
-        for linea in resultados:
-            self.consola.insert(self.tk.END, linea + "\n")
-        messagebox.showinfo(
+    def ejecutar_desde_gui(self):  # Se ejecuta al presionar el botón
+        from tkinter import messagebox  # Cuadros de mensaje
+        self.consola.delete("1.0", self.tk.END)  # Borra el contenido anterior
+        resultados = ejecutar_simulaciones_logica()  # Ejecuta de nuevo las simulaciones
+        self.consola.insert(self.tk.END, "Nuevas simulaciones ejecutadas desde la interfaz:\n\n")  # Encabezado
+        for linea in resultados:  # Recorre cada resultado
+            self.consola.insert(self.tk.END, linea + "\n")  # Lo muestra en pantalla
+        messagebox.showinfo(  # Avisa que terminó y que se guardó el log
             "Simulación Completa",
             "Se ejecutaron las operaciones de prueba y se guardaron en 'eventos_errores.log'.")
+
+# Fin del archivo interfaz.py
