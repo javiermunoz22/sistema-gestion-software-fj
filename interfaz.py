@@ -25,29 +25,39 @@ def crear_servicio(tipo_serv, tarifa):
 
 
 def ejecutar_simulaciones_logica():
-    """Ejecuta las 10 simulaciones obligatorias y retorna los resultados (texto)."""
+    """Ejecuta las simulaciones (10 base + 4 de casos inválidos adicionales)."""
     escenarios = [
-        ("C01", "Laura Gómez", "laura@mail.com", "sala", 50000, 3),          # éxito
-        ("C02", "", "sin_nombre@mail.com", "equipo", 80000, 2),              # ERROR: sin nombre
-        ("C03", "Carlos Ruiz", "carlos@mail.com", "equipo", 80000, 4),       # éxito
-        ("C04", "Ana Torres", "ana@mail.com", "sala", 50000, -1),            # ERROR: duración negativa
-        ("C05", "Luis Pérez", "luis@mail.com", "asesoria", 120000, 2),       # éxito
-        ("C06", "Marta Díaz", "correo_sin_arroba", "sala", 50000, 2),        # ERROR: correo inválido
-        ("C07", "Jorge Mora", "jorge@mail.com", "inexistente", 40000, 1),    # ERROR: servicio inexistente
-        ("C08", "Sofía León", "sofia@mail.com", "sala", 60000, 5),           # éxito
-        ("C09", "Pedro Gil", "pedro@mail.com", "reserva_nula", 0, 0),        # ERROR: reserva sin servicio
-        ("C10", "Elena Ríos", "elena@mail.com", "asesoria", 150000, 3),      # éxito
+        ("C01", "Laura Gómez", "laura@mail.com", "sala", 50000, 3, None),          # éxito
+        ("C02", "", "sin_nombre@mail.com", "equipo", 80000, 2, None),              # ERROR: sin nombre
+        ("C03", "Carlos Ruiz", "carlos@mail.com", "equipo", 80000, 4, None),       # éxito
+        ("C04", "Ana Torres", "ana@mail.com", "sala", 50000, -1, None),            # ERROR: duración negativa
+        ("C05", "Luis Pérez", "luis@mail.com", "asesoria", 120000, 2, None),       # éxito
+        ("C06", "Marta Díaz", "correo_sin_arroba", "sala", 50000, 2, None),        # ERROR: correo inválido
+        ("C07", "Jorge Mora", "jorge@mail.com", "inexistente", 40000, 1, None),    # ERROR: servicio inexistente
+        ("C08", "Sofía León", "sofia@mail.com", "sala", 60000, 5, None),           # éxito
+        ("C09", "Pedro Gil", "pedro@mail.com", "reserva_nula", 0, 0, None),        # ERROR: reserva sin servicio
+        ("C10", "Elena Ríos", "elena@mail.com", "asesoria", 150000, 3, None),      # éxito
+        # ---- Casos inválidos adicionales (disparan las demás excepciones) ----
+        ("C11", "Diana Soto", "diana@mail.com", "sala", 50000, 15, None),                  # ERROR: duración fuera de rango
+        ("C12", "Mario Vega", "mario@mail.com", "equipo", 80000, 2, "no_disponible"),      # ERROR: servicio no disponible
+        ("C13", "Paula Cruz", "paula@mail.com", "asesoria", 120000, 2, "cancelar"),        # ERROR: operación no permitida
+        ("C14", "Hugo Rojas", "hugo@mail.com", "sala", 50000, 2, "impuesto_texto"),        # ERROR: cálculo inconsistente
     ]
 
     resultados_texto = []
 
-    for idx, (cid, nombre, correo, tipo_serv, costo, cantidad) in enumerate(escenarios, start=1):
+    for idx, (cid, nombre, correo, tipo_serv, costo, cantidad, variante) in enumerate(escenarios, start=1):
         try:
             cliente = Cliente(cid, nombre, correo)
             servicio = crear_servicio(tipo_serv, costo)
+            if variante == "no_disponible":
+                servicio.disponible = False  # simula un servicio fuera de servicio
             reserva = Reserva(cliente, servicio, cantidad)
+            if variante == "cancelar":
+                reserva.cancelar()  # luego confirmar() debe fallar (operación no permitida)
             reserva.confirmar()
-            mensaje_exito = reserva.procesar_reserva(impuesto=0.19)
+            impuesto = "diecinueve" if variante == "impuesto_texto" else 0.19  # texto = dato inconsistente
+            mensaje_exito = reserva.procesar_reserva(impuesto=impuesto)
 
         except SoftwareFJException as err:
             msg = f"[SIMULACIÓN {idx:02d} - ERROR CONTROLADO] {type(err).__name__}: {err}"
@@ -85,7 +95,7 @@ class AppSoftwareFJ:
         titulo.pack(pady=10)
 
         btn_simular = tk.Button(
-            root, text="Volver a Ejecutar 10 Simulaciones y Registrar Logs",
+            root, text="Volver a Ejecutar las Simulaciones y Registrar Logs",
             bg="#2E7D32", fg="white", font=("Arial", 10, "bold"),
             command=self.ejecutar_desde_gui)
         btn_simular.pack(pady=5)
@@ -107,4 +117,4 @@ class AppSoftwareFJ:
             self.consola.insert(self.tk.END, linea + "\n")
         messagebox.showinfo(
             "Simulación Completa",
-            "Se ejecutaron las 10 operaciones de prueba y se guardaron en 'eventos_errores.log'.")
+            "Se ejecutaron las operaciones de prueba y se guardaron en 'eventos_errores.log'.")
